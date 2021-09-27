@@ -1,0 +1,134 @@
+mean of 100 atempts for each rule
+
+Where a rule is 8 bits.
+Example: 169 = [1,0,1,0,1,0,0,1]
+With ruleset: {(1, 1, 1): 1, (1, 1, 0): 0, (1, 0, 1): 1, (1, 0, 0): 0, (0, 1, 1): 1, (0, 1, 0): 0, (0, 0, 1): 0, (0, 0, 0): 1, 'name': 'Rule 169'}
+
+
+
+get_action(observation, iterations):
+input = []
+i = 0
+for j in range(8):
+    if (observation[i] < 0):
+        input.append(0)
+    else:
+        input.append(1)
+    if (j % 2 == 1):
+        i += 1
+for i in range(iterations):
+    output = self.iterate(input)
+    input = output       
+if (output.count(1) > len(output) / 2):
+    return 1
+return 0
+
+
+
+----------- 1 Iterations -----------
+{'Rule': 103, 'mean score': 26.98}
+{'Rule': 99, 'mean score': 27.68}
+{'Rule': 161, 'mean score': 30.99}
+{'Rule': 129, 'mean score': 31.42}
+{'Rule': 165, 'mean score': 35.77}
+{'Rule': 133, 'mean score': 39.12}
+{'Rule': 202, 'mean score': 67.52}
+{'Rule': 238, 'mean score': 68.92}
+{'Rule': 234, 'mean score': 69.33}
+{'Rule': 206, 'mean score': 72.79}
+
+----------- 2 Iterations -----------
+{'Rule': 206, 'mean score': 68.91}
+{'Rule': 158, 'mean score': 69.0}
+{'Rule': 202, 'mean score': 69.55}
+{'Rule': 107, 'mean score': 69.71}
+{'Rule': 230, 'mean score': 69.72}
+{'Rule': 238, 'mean score': 69.87}
+{'Rule': 186, 'mean score': 74.81}
+{'Rule': 169, 'mean score': 92.63}
+{'Rule': 121, 'mean score': 115.71}
+{'Rule': 125, 'mean score': 166.54}
+
+----------- 3 Iterations -----------
+{'Rule': 186, 'mean score': 68.84}
+{'Rule': 230, 'mean score': 112.26}
+{'Rule': 195, 'mean score': 119.02}
+{'Rule': 110, 'mean score': 141.55}
+{'Rule': 171, 'mean score': 144.95}
+{'Rule': 238, 'mean score': 157.65}
+{'Rule': 206, 'mean score': 160.86}
+{'Rule': 234, 'mean score': 163.43}
+{'Rule': 202, 'mean score': 169.09}
+{'Rule': 139, 'mean score': 170.37}
+
+----------- 4 Iterations -----------
+{'Rule': 85, 'mean score': 160.91}
+{'Rule': 17, 'mean score': 161.36}
+{'Rule': 49, 'mean score': 161.46}
+{'Rule': 238, 'mean score': 161.97}
+{'Rule': 202, 'mean score': 162.91}
+{'Rule': 234, 'mean score': 167.1}
+{'Rule': 154, 'mean score': 171.16}
+{'Rule': 206, 'mean score': 171.97}
+{'Rule': 198, 'mean score': 172.68}
+{'Rule': 230, 'mean score': 189.15}
+
+----------- 5 Iterations -----------
+{'Rule': 173, 'mean score': 112.39}
+{'Rule': 62, 'mean score': 141.17}
+{'Rule': 234, 'mean score': 155.27}
+{'Rule': 202, 'mean score': 159.82}
+{'Rule': 206, 'mean score': 165.87}
+{'Rule': 238, 'mean score': 168.63}
+{'Rule': 186, 'mean score': 169.59}
+{'Rule': 230, 'mean score': 174.26}
+{'Rule': 78, 'mean score': 196.33}
+{'Rule': 169, 'mean score': 223.26} // highest recorded 10000.0 (current limit)
+
+----------- 6 Iterations -----------
+{'Rule': 198, 'mean score': 196.36}
+{'Rule': 85, 'mean score': 197.59}
+{'Rule': 119, 'mean score': 199.24}
+{'Rule': 21, 'mean score': 200.93}
+{'Rule': 154, 'mean score': 201.56}
+{'Rule': 186, 'mean score': 204.07}
+{'Rule': 49, 'mean score': 204.09}
+{'Rule': 78, 'mean score': 205.71}
+{'Rule': 61, 'mean score': 205.95}
+{'Rule': 53, 'mean score': 208.39}
+
+----------- 7 Iterations -----------
+{'Rule': 11, 'mean score': 43.27}
+{'Rule': 122, 'mean score': 45.63}
+{'Rule': 110, 'mean score': 136.88}
+{'Rule': 206, 'mean score': 159.99}
+{'Rule': 238, 'mean score': 163.49}
+{'Rule': 234, 'mean score': 166.42}
+{'Rule': 202, 'mean score': 170.33}
+{'Rule': 125, 'mean score': 173.92}
+{'Rule': 78, 'mean score': 208.4}
+{'Rule': 230, 'mean score': 209.82}
+
+----------- 8 Iterations -----------
+{'Rule': 157, 'mean score': 197.15}
+{'Rule': 70, 'mean score': 199.49}
+{'Rule': 49, 'mean score': 200.23}
+{'Rule': 119, 'mean score': 200.32}
+{'Rule': 155, 'mean score': 200.86}
+{'Rule': 198, 'mean score': 201.14}
+{'Rule': 175, 'mean score': 202.35}
+{'Rule': 21, 'mean score': 203.0}
+{'Rule': 78, 'mean score': 203.72}
+{'Rule': 61, 'mean score': 209.56}
+
+----------- 9 Iterations -----------
+{'Rule': 110, 'mean score': 161.52}
+{'Rule': 202, 'mean score': 162.38}
+{'Rule': 81, 'mean score': 163.26}
+{'Rule': 234, 'mean score': 164.44}
+{'Rule': 206, 'mean score': 165.6}
+{'Rule': 113, 'mean score': 167.52}
+{'Rule': 230, 'mean score': 170.11}
+{'Rule': 117, 'mean score': 199.48}
+{'Rule': 78, 'mean score': 200.26}
+{'Rule': 125, 'mean score': 215.5}
