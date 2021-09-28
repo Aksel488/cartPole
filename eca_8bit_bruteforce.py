@@ -57,32 +57,35 @@ class eight_bit_rule:
 
 
 env = gym.make('CartPole-v0').env
-mean_scores = []
 
-for n_rule in range(256):
-    rule = eight_bit_rule(n_rule)
-    scores = []
-    
-    for t in range(10):
-        score = 0
-        observation = env.reset()
+for iter in range(1,10):
+    mean_scores = []
 
-        for _ in range(500):
-            #env.render()
-            
-            action = rule.get_action(observation, 5)
-            observation, reward, done, info = env.step(action)
+    for n_rule in range(256):
+        rule = eight_bit_rule(n_rule)
+        scores = []
+        
+        for t in range(10):
+            score = 0
+            observation = env.reset()
 
-            score += reward
-            if done:
-                break
-        scores.append(score)
-    mean_scores.append({'Rule': n_rule, 'mean score': np.mean(scores)})
-    print(mean_scores[-1])
+            for _ in range(500):
+                #env.render()
+                
+                action = rule.get_action(observation, iter)
+                observation, reward, done, info = env.step(action)
 
-sorted_scores = sorted(mean_scores, key = lambda i: i['mean score'])
-print("--------- Top 10 rules ---------")
-for ind in range(-10, 0):
-    print(sorted_scores[ind])
+                score += reward
+                if done:
+                    break
+            scores.append(score)
+        mean_scores.append({'Rule': n_rule, 'mean score': np.mean(scores)})
+        #print(mean_scores[-1])
+
+    sorted_scores = sorted(mean_scores, key = lambda i: i['mean score'])
+    print("-- Top 10 rules with {} iterations --".format(iter))
+    for ind in range(-1, -11, -1):
+        print(sorted_scores[ind])
+    print()
 
 env.close()
