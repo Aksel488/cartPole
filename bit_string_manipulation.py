@@ -6,7 +6,7 @@ import random
 
 n_rules = 100
 rules_length = 1000
-iterations = 200
+iterations = 500
 
 class BitString:
     def __init__(self, n_rules, rules_length):
@@ -57,20 +57,21 @@ class BitString:
             # print('child   :',child)
         
         for child in children:
+            child = self.mutate(child)
             next_gen.append(child)
 
         self.rules = next_gen
 
 
-    def mutate(self):
+    def mutate(self, child):
         ''' every element has a 1% chance of flipping '''
-        for rule in self.rules:
-            for i in range(len(rule)):
-                if (random.random() < 0.01):
-                    if (rule[i] == 0):
-                        rule[i] = 1
-                    else: 
-                        rule[i] = 0
+        for i in range(len(child)):
+            if (random.random() < 0.01):
+                if (child[i] == 0):
+                    child[i] = 1
+                else: 
+                    child[i] = 0
+        return child
 
 
     def fit(self):
@@ -95,7 +96,6 @@ class BitString:
             # self.spalt(A, B, start, stop)
 
             self.next_generation()
-            self.mutate()
 
             for i in range(len(self.rules)):
                 self.fitnes[i] = self.getFitnes(self.rules[i])
