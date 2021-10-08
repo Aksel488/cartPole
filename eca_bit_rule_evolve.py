@@ -2,6 +2,7 @@ import gym
 import numpy as np
 import random
 import time
+import matplotlib.pyplot as plt
 
 from numpy.core.fromnumeric import mean
 
@@ -51,10 +52,11 @@ _5bit_input_patterns = [
 ]
 
 population_size = 20        # number of rules stored
-rule_size = 32              # length of bit-array
-epochs = 100                # training rounds
-num_tries = 4               # tries each rule has each epoch
-iterations = 10             # number of iterations applied on each rule, each step
+rule_size = 32              # length of bit-array (8 for 3 bit inputs, 32 for 5 bit inputs)
+row_width = 12              # length of each row
+epochs = 20                 # training rounds
+num_tries = 5               # tries each rule has each epoch
+iterations = 5              # number of iterations applied on each rule, each step
 goal_steps = 500            # forced stop after this many steps
 
 class bit_rule:
@@ -68,7 +70,7 @@ class bit_rule:
         output = []
         i = 0
 
-        for j in range(rule_size):
+        for j in range(row_width):
             i = j % 4
             if (observation[i] < 0):
                 output.append(0)
@@ -85,19 +87,23 @@ class bit_rule:
         return list(output[2:-2])
             
     def get_action(self, observation, iterations):
-        ''' convert the observations to an array of length 8 of 0-s and 1-s '''
+        ''' convert the observations to an array of length row_width of 0-s and 1-s '''
         output = self.obs_to_input(observation)
         
+        ''' Apply the rule '''
         for i in range(iterations):
-            tmp_output = self.iterate(output)
-            output = tmp_output
+            output = self.iterate(output)
         
+        ''' Convert the last output to a action '''
         if (output.count(1) > len(output) / 2):
             return 1
         return 0
 
     def bitlist_to_int(self):
         return int("".join(str(x) for x in self.rule_arry), 2)
+
+    def __str__(self):
+        return f"{self.rule_arry} {self.fitnes}"
 
 
 def next_generation(population):
@@ -159,10 +165,14 @@ for rule in range(population_size):
     # rule_arry = [0,1,1,1,0,0,1,1,1,1,0,1,1,1,0,1]
     # rule_arry = [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0] ->
     # rule_arry = [0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1]
+    # rule_arry = [0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1]
+    # rule_arry = [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0]
     # rule_arry = 
     population.append(bit_rule(rule_arry))
 
-for epoch in range(epochs):
+epoch_stats = {'epoch': [], 'avg': [], 'max': [], 'min': [],}
+
+for epoch in range(1, epochs+1):
     mean_scores = []
 
     for rule in population:
@@ -173,14 +183,14 @@ for epoch in range(epochs):
             observation = env.reset()
 
             for j in range(goal_steps):
-                #env.render()
+                # env.render()
                 
                 action = rule.get_action(observation, iterations)
                 
                 observation, reward, done, info = env.step(action)
 
                 score += reward
-                # if observation[0] > .2 or observation[0] < -.2:
+                # if observation[0] > .1 or observation[0] < -.1:
                 #     break
                 if done:
                     break
@@ -188,18 +198,30 @@ for epoch in range(epochs):
             #print(score)
         mean_score = np.mean(scores)
         rule.fitnes = mean_score
-        mean_scores.append({'Rule': rule.rule_arry, 'mean score': mean_score})
-        #print(mean_scores[-1])
+        # mean_scores.append({'Rule': rule.rule_arry, 'mean score': mean_score})
+        # print(mean_scores[-1])
 
-    sorted_scores = sorted(mean_scores, key = lambda i: i['mean score'], reverse=True)
-    print("-- Top 10 rules after {} epochs --".format(epoch+1))
-    for ind in range(10):
-        print(sorted_scores[ind])
-    print()
+    # sorted_scores = sorted(mean_scores, key = lambda i: i['mean score'], reverse=True)
+    sorted_population = sorted(population, key = lambda rule: rule.fitnes, reverse=True)
+    epoch_stats['epoch'].append(epoch)
+    epoch_stats['avg'].append(sum(rule.fitnes for rule in population)/population_size)
+    epoch_stats['max'].append(sorted_population[0].fitnes)
+    epoch_stats['min'].append(sorted_population[-1].fitnes)
+
+    print("epoch: {} avg: {} max: {} min: {}".format(epoch, round(epoch_stats['avg'][-1], 1), epoch_stats['max'][-1], epoch_stats['min'][-1]))
+    print(sorted_population[0])
 
     ''' evolv and mutate pupolation '''
     population = next_generation(population)
 
+    print()
+
 for rule in population:
     print(rule.fitnes," ",rule.rule_arry)
 env.close()
+
+plt.plot(epoch_stats['epoch'], epoch_stats['avg'], label='avg')
+plt.plot(epoch_stats['epoch'], epoch_stats['max'], label='max')
+plt.plot(epoch_stats['epoch'], epoch_stats['min'], label='min')
+plt.legend(loc=4)
+plt.show()
