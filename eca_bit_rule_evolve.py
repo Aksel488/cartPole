@@ -50,17 +50,22 @@ _5bit_input_patterns = [
 ]
 
 ''' evolutionary constants '''
-population_size = 20        # number of rules stored
-input_size = 2              # length of bit-input offset (1 for 3 bit inputs, 2 for 5 bit inputs)
-row_width = 32              # length of each row
-precision = row_width // 4  # bits / observation
-epochs = 100                # training rounds
-num_tries = 1               # tries each rule has each epoch
-iterations = 10             # number of iterations applied on each rule, each step
+population_size = 10            # number of rules stored
+num_parents = 10                # number of rules to keep for next generation (only used in the crossover function)
+mutation_rate = 0.05            # chance for a bit to flip
+
+''' rule constants '''
+input_size = 2                  # length of bit-input offset (1 for 3 bit inputs, 2 for 5 bit inputs)
+row_width = 32                  # length of each row (should be divisible by 4)
+precision = row_width // 4      # num of bits assigned to each observation
+iterations = 1                  # number of iterations applied on each rule, each step
 
 ''' env constants '''
-goal_steps = 200            # forced stop after this many steps
-env_max = [1, 2, 0.1, 1]    # max precision from the env-observation
+SHOW = False
+epochs = 5                      # training rounds
+num_tries = 10                  # tries each rule has each epoch
+goal_steps = 1000               # forced stop after this many steps
+env_max = [0.5, 2, 0.1, 0.5]    # max precision from the env-observation
 
 class bit_rule:
     ''' bit array of row_width length '''
@@ -108,12 +113,12 @@ class bit_rule:
         # i = 0
         # j = 1
         # for j in range(row_width):
-            # # i = 0 1 2 3 0 1 2 3 0 1 2 3 if precision=3
-            # i = j % 4
-            # if (observation[i] < 0):
-            #     output.append(0)
-            # else:
-            #     output.append(1)
+        #     # i = 0 1 2 3 0 1 2 3 0 1 2 3 if precision=3
+        #     i = j % 4
+        #     if (observation[i] < 0):
+        #         output.append(0)
+        #     else:
+        #         output.append(1)
 
         # for _ in range(row_width):
         #     # i = 0 0 0 1 1 1 2 2 2 3 3 3 if precision=3
@@ -146,14 +151,16 @@ class bit_rule:
             output = self.iterate(output)
         
         ''' Convert the last output to an action '''
-        num = 0
-        num = output[int(len(output)/2)]
-        if (num > 0):
-            # if observation[2] < 0 and random.random() < abs(observation[2]/(env.observation_space.high[2]*0.5)):
-            #     return 0
-            return 1
-        # if observation[2] > 0 and random.random() < abs(observation[2]/(env.observation_space.high[2]*0.5)):
+        # # value of the center position
+        # num = 0
+        # num = output[int(len(output)/2)]
+        # if (num > 0):
         #     return 1
+        # return 0
+
+        # value majority
+        if output.count(1) > len(output)/2:
+            return 1
         return 0
 
     def bitlist_to_int(self):
@@ -163,23 +170,25 @@ class bit_rule:
         return f"{self.rule_arry} {self.fitnes}"
 
 
-def next_generation(population):
+
+########## Evolutionary Algorithms ##########
+
+def crossover(sorted_population):
     '''
-    uses half the fittest in the population to create the next generation
+    uses the fittest in the population to create the next generation
     with the uniform crossover algorithm.
     Parrent A and B can be the same
     '''
     children = []
     next_gen = []
-    sorted_population = sorted(population, key = lambda rule: rule.fitnes, reverse=True)
-    for idx in range(int(population_size/2)):
+    for idx in range(num_parents):
         # picks the parrents
         next_gen.append(sorted_population[idx])
 
-    for i in range(len(next_gen)):
+    for i in range(num_parents):
         # creates the children
         child = []
-        mask = [random.randint(0, 1) for _ in range(len(population[0].rule_arry))]
+        mask = [random.randint(0, 1) for _ in range(len(sorted_population[0].rule_arry))]
         parrentA = next_gen[i]
         parrentB = next_gen[random.randint(0, len(next_gen)-1)]
         for j in range(len(parrentA.rule_arry)):
@@ -193,25 +202,67 @@ def next_generation(population):
         # print('parrentB:',parrentB)
         # print('mask    :',mask)
         # print('child   :',child)
-    
-    for child in children:
-        child = mutate(child)
-        next_gen.append(bit_rule(child))
+    return children, next_gen
 
-    return next_gen
+def single_parrent(population):
+    ''' picks the fittest parrent, every child is the same as the fittest parrent '''
+    children = []
+    next_gen = []
 
+    parrent = population[0]
+    next_gen.append(parrent)
+
+    for _ in range(population_size-1):
+        child = []
+        for i in range(len(parrent.rule_arry)):
+            child.append(parrent.rule_arry[i])
+        children.append(child)
+
+    return children, next_gen
 
 def mutate(child):
-    ''' every element has a 5% chance of flipping '''
+    ''' every element has the chance of mutation_rate to flip '''
     for i in range(len(child)):
-        if (random.random() < 0.05):
+        if (random.random() < mutation_rate):
             if (child[i] == 0):
                 child[i] = 1
             else: 
                 child[i] = 0
     return child
 
-env = gym.make('CartPole-v0').env
+def next_generation(population):
+    '''
+    3 sep function:
+    1. pick the parrent(s) and create the children (parrents is added to next_gen)
+    2. mutate the children
+    3. return the next generation
+    '''
+    children = []
+    next_gen = []
+    sorted_population = sorted(population, key = lambda rule: rule.fitnes, reverse=True)
+    
+    ''' different algorithms for picking parrents and creating children (use only one!) '''
+    # children, next_gen = crossover(sorted_population)
+    children, next_gen = single_parrent(sorted_population)
+    
+    for child in children:
+        ''' mutate the rules in the children list and add them to the next generation '''
+        child = mutate(child)
+        next_gen.append(bit_rule(child))
+    
+    if (len(next_gen) < population_size):
+        ''' if the next population is less than the population size, fill the population with new random rules '''
+        for _ in range(population_size-len(next_gen)):
+            rule_arry = [random.randint(0, 1) for _ in range(rule_length)]
+            next_gen.append(bit_rule(rule_arry))
+
+    
+    return next_gen
+
+
+
+
+########## random rule initialization ##########
 
 if input_size < 2:
     rule_length = 8
@@ -220,54 +271,60 @@ else:
 population = []
 for rule in range(population_size):
     rule_arry = [random.randint(0, 1) for _ in range(rule_length)]
-    # rule_arry = [1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0]
-    # rule_arry = [1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0]
-    # rule_arry = [1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0]
-    # rule_arry = 
-    # rule_arry = [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
-    # rule_arry = [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0]
-    # rule_arry = [0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1]
-    # rule_arry = 
-    ''' outptu precision '''
-    # rule_arry = [1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1]
-    # rule_arry = [1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0]
-    # rule_arry = [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]
+
+    ''' rule_arry can be used to test a rule, or continue evolving from the given rule '''
+    # rule_arry = [0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0]
+    # rule_arry = [1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
     # rule_arry = 
     population.append(bit_rule(rule_arry))
+
+
+
+########## Training ##########
 
 epoch_stats = {'epoch': [], 'avg': [], 'max': [], 'min': []}
 rule_stats = {'rule': [], 'fitnes': []}
 
+start = time.time()
+
+env = gym.make('CartPole-v0').env
 for epoch in range(1, epochs+1):
     mean_scores = []
 
     for rule in population:
         scores = []
+        steps = []
         
         for t in range(num_tries):
             score = 0
-            steps = 0
+            step = 0
             observation = env.reset()
 
             for j in range(goal_steps):
-                # env.render()
+                if SHOW:
+                    env.render()
                 
                 action = rule.get_action(observation, iterations)
                 
                 observation, reward, done, info = env.step(action)
                 
-                steps += reward
-                score += reward - abs((observation[2]/(env.observation_space.high[2]*0.5))**2 + 5*(observation[0]/(env.observation_space.high[0]*0.5))**2)
+                step += reward
+                score += reward
+                # score += reward - abs((observation[2]/(env.observation_space.high[2]*0.5))**2 + 5*(observation[0]/(env.observation_space.high[0]*0.5))**2)
 
                 if done:
                     break
+
             scores.append(score)
-            # print(score)
-            # print(steps)
+            steps.append(step)
+            if SHOW:
+                # print(score)
+                print(step)
+
         rule.fitnes = sum(score for score in scores)/num_tries
-        # print(rule.bitlist_to_int())
+        avg_steps = sum(step for step in steps)/num_tries
         rule_stats['rule'].append(rule.bitlist_to_int())
-        rule_stats['fitnes'].append(rule.fitnes)
+        rule_stats['fitnes'].append(avg_steps)
 
     sorted_population = sorted(population, key = lambda rule: rule.fitnes, reverse=True)
     epoch_stats['epoch'].append(epoch)
@@ -278,8 +335,9 @@ for epoch in range(1, epochs+1):
     print("epoch: {} avg: {} max: {} min: {}".format(epoch, round(epoch_stats['avg'][-1], 1), epoch_stats['max'][-1], epoch_stats['min'][-1]))
     print(sorted_population[0])
 
-    ''' evolv and mutate pupolation '''
-    population = next_generation(population)
+    ''' evolv and mutate population '''
+    if epoch < epochs:
+        population = next_generation(population)
 
     print()
 
@@ -289,12 +347,14 @@ print("-- Population --")
 for rule in population:
     print(rule)
 
+end = time.time()
+print("took: ",end - start, "seconds")
+
 plt.plot(epoch_stats['epoch'], epoch_stats['avg'], label='avg')
 plt.plot(epoch_stats['epoch'], epoch_stats['max'], label='max')
 plt.plot(epoch_stats['epoch'], epoch_stats['min'], label='min')
 plt.legend(loc=4)
 plt.show()
 
-plt.plot(rule_stats['rule'], rule_stats['fitnes'], 'ro')
-plt.legend(loc=2)
+plt.plot(rule_stats['rule'], rule_stats['fitnes'], 'ro', ms=1)
 plt.show()
